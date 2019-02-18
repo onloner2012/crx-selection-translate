@@ -2,7 +2,7 @@
  * @files 提取出来基本的 ST 组件配置
  */
 
-const IS_TOUCH = 'ontouch' in window ,
+const IS_TOUCH = false ,
   MOUSE_DOWN = IS_TOUCH
     /* istanbul ignore next */ ? 'touchstart'
     /* istanbul ignore next */ : 'mousedown' ,
@@ -13,6 +13,16 @@ const IS_TOUCH = 'ontouch' in window ,
     /* istanbul ignore next */ ? 'metaKey'
     /* istanbul ignore next */ : 'ctrlKey' ,
   selection = getSelection();
+
+  const getXY = IS_TOUCH
+    ? e => {
+      const touch = e.touches[0] || e.changedTouches[0]
+      return touch ? {
+        x: touch.pageX,
+        y: touch.pageY
+      } : { x: 0, y: 0 }
+    }
+    : e => ({ x: e.pageX, y: e.pageY })
 
 export default {
   el : ()=> document.createElement( 'div' ) ,
@@ -38,6 +48,7 @@ export default {
     ignoreNumLike : true , // 忽略数字与符号的组成
     showBtn : true , // 是否在划词后显示一个按钮，点击它才翻译
     needCtrl : false , // 是否需要配合 Ctrl 键才翻译
+    showShanbay: true, // 显示扇贝单词本
 
     // 定位的样式属性，用于翻译按钮
     btnPos : {
@@ -152,7 +163,7 @@ export default {
     this.$on( 'mouseup' , e => {
       setTimeout( ()=> {
         const text = getText();
-        if ( text && !$box.contains( e.target ) && 0 === e.button ) {
+        if ( text && !$box.contains( e.target ) && (IS_TOUCH || 0 === e.button) ) {
           this.$emit( 'select' , e , text );
         }
       } , 0 );
@@ -160,10 +171,12 @@ export default {
 
     this.$on( 'select' , ( e , text )=> {
       if ( check( this , e , text ) ) {
-        const left = e.pageX - window.pageXOffset ,
-          top = e.pageY - window.pageYOffset + 10 ,
+        const { x, y } = getXY(e)
+        let left = x - window.pageXOffset ,
+          top = y - window.pageYOffset + 10 ,
           {btnPos} = this;
-
+        if (left < 0) left = 0;
+        if (top < 0) top = 0;
         btnPos.translateX = left;
         btnPos.translateY = top;
 
